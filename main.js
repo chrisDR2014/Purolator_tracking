@@ -47,12 +47,11 @@ function formatDateString(dateString) {
 
 (async() => {
 
-	const filename = process.argv.length >= 3 ? process.argv[2] : 'PuroMar5.xlsx'; // Change this to the name of your Excel file
-	/*const pinFilePath = `./data/${filename}`; // Change this to the path of your Excel file
-    const pinNumbers = await getPinNumbersFromExcel(pinFilePath);
-	*/
+	const startDate = new Date(); // Start time for the script
 
-	const pinNumbers = ['334588975386', '334569025094', '334568211166']
+	const filename = process.argv.length >= 3 ? process.argv[2] : 'PuroMar5.xlsx'; // Change this to the name of your Excel file
+	const pinFilePath = `./data/${filename}`; // Change this to the path of your Excel file
+    const pinNumbers = await getPinNumbersFromExcel(pinFilePath);
 
     const data = [];
 
@@ -90,8 +89,9 @@ function formatDateString(dateString) {
 		// Get all the table rows
 		const rows = await page.$$('tbody tr');
 
-		// Iterate through each row
-		for (const row of rows) {
+		// Iterate through each row starting from the last one
+		for (let i = rows.length - 1; i >= 0; i--) {
+    		const row = rows[i];
 			// Get the last cell in the row
 			const lastCellText = await page.evaluate(row => row.querySelector('td:last-child').textContent.trim(), row);
 			// Check if the last cell contains the text "Picked up by Purolator"
@@ -104,11 +104,13 @@ function formatDateString(dateString) {
 			}
 		}
 
-		const deliveryDateStr = await page.$eval('#tracking-detail > div.detailed-view.DEL > div:nth-child(5) > div.col-12.col-sm-7 > p', (el) => el.innerText);
-		//const shippingDateStr = await page.$eval('#tracking-detail > div.detailed-view.DEL > div.row.border-top.pt-2 > div.col-12.col-sm-4.col-md-4.col-lg-4.pl-sm-0.order-3 > div:nth-child(3) > div.col-7.col-sm-12.col-md-7', (el) => el.innerText);
+		if (!dateString) {
+			dateString = await page.$eval('#tracking-detail > div.detailed-view.DEL > div.row.border-top.pt-2 > div.col-12.col-sm-4.col-md-4.col-lg-4.pl-sm-0.order-3 > div:nth-child(3) > div.col-7.col-sm-12.col-md-7', (el) => el.innerText);
+		}
 
+		const deliveryDateStr = await page.$eval('#tracking-detail > div.detailed-view.DEL > div:nth-child(5) > div.col-12.col-sm-7 > p', (el) => el.innerText);
+	
 		await page.close()
-		console.log("Date string:", dateString);
 		const deliveryDate = formatDateString(deliveryDateStr);
 		const shippingDate = formatDateString(dateString);
 
@@ -129,12 +131,15 @@ function formatDateString(dateString) {
 	await browser.close();
 
 	// Write data to Excel file
-    /*const ws = XLSX.utils.aoa_to_sheet([['PIN', 'Shipping Date', 'Delivery Date', 'Business Days'], ...data]);
+    const ws = XLSX.utils.aoa_to_sheet([['PIN', 'Shipping Date', 'Delivery Date', 'Business Days'], ...data]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Tracking Data');
     writeFile(`./data/results${filename}`, XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' }), (err) => {
         if (err) throw err;
         console.log(`Data has been written to results${filename}`);
-    }); */
+    });
+	const endDate = new Date(); // End time for the script
+	const scriptDuration = (endDate - startDate) / 1000; // Duration of the script in seconds
+	print(`Script took ${scriptDuration.toFixed(2)} seconds.`);
 })();
 
