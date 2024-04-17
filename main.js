@@ -169,6 +169,6 @@ function writeDataToExcel(data, filename) {
 	writeDataToExcel(data, filename);
 	const endDate = new Date(); // End time for the script
 	const scriptDuration = (endDate - startDate) / 1000; // Duration of the script in seconds
-	print(`Script took ${scriptDuration.toFixed(2)} seconds.`);
+	console.log(`Script took ${scriptDuration.toFixed(2)} seconds.`);
 })();
 
