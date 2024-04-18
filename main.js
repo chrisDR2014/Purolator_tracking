@@ -66,9 +66,8 @@ function writeDataToExcel(data, filename) {
 	const filename = process.argv.length >= 3 ? process.argv[2] : 'PuroMar5.xlsx'; // Change this to the name of your Excel file
 	const pinFilePath = `./data/${filename}`; // Change this to the path of your Excel file
     const pinNumbers = await getPinNumbersFromExcel(pinFilePath);
-
+	
     const data = [];
-
 	let amountPins = 0
 	const amountPinsTotal = pinNumbers.length;
 	let totalIterationTime = 0;
@@ -93,6 +92,7 @@ function writeDataToExcel(data, filename) {
 	
 	for (const pin of pinNumbers) {
 		let dateString;
+		const website = `https://www.purolator.com/en/shipping/tracker?pin=${pin}`
 		const iterationStartTime = new Date(); // Start time for the iteration
 		amountPins++;
 		console.log(`Processing PIN: ${pin}, ${amountPins} of ${amountPinsTotal}`);
@@ -105,8 +105,13 @@ function writeDataToExcel(data, filename) {
 			hasTouch: false,
 			deviceScaleFactor: 1});
 
-		await page.goto(`https://www.purolator.com/en/shipping/tracker?pin=${pin}`);
-		
+		try {
+			await page.goto(website, { timeout: `${timeout}` });
+		} catch (error) {
+			console.log(`Skipping PIN ${pin} due to error.`);
+			await page.close();
+			continue;
+		}
 		try { 
 			await Promise.all([
 				page.waitForSelector('#tracking-detail > div.detailed-view.DEL > div:nth-child(5) > div.col-12.col-sm-7 > p', { timeout: `${timeout}` }),
