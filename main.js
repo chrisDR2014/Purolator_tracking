@@ -78,7 +78,7 @@ function writeDataToExcel(data, filename) {
 
 	if (platform === 'linux') {
 		browser = await puppeteer.launch({executablePath: '/usr/bin/chromium-browser'});
-		timeout = 15000;
+		timeout = 25000;
 	}
 	else if (platform === 'win32') {
 		browser = await puppeteer.launch();
@@ -108,7 +108,7 @@ function writeDataToExcel(data, filename) {
 		try {
 			await page.goto(website, { timeout: `${timeout}` });
 		} catch (error) {
-			console.log(`Skipping PIN ${pin} due to error.`);
+			console.log(`Skipping PIN ${pin} due to timeout.`);
 			await page.close();
 			continue;
 		}
@@ -118,7 +118,7 @@ function writeDataToExcel(data, filename) {
 				page.waitForSelector('#tracking-detail > div.detailed-view.DEL > div.row.border-top.pt-2 > div.col-12.col-sm-4.col-md-4.col-lg-4.pl-sm-0.order-3 > div:nth-child(3) > div.col-7.col-sm-12.col-md-7', { timeout: `${timeout}` })
 			])
 		} catch (error) {
-			console.log(`Skipping PIN ${pin} due to missing or empty date information.`);
+			console.log(`Skipping PIN ${pin} due to missing elements.`);
             await page.close();
             continue;
 		}
