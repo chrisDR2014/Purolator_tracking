@@ -6,12 +6,17 @@ import XLSX from 'xlsx'
 import os from 'os';
 
 
-async function getPinNumbersFromExcel(filePath) {
+async function getPinDataFromExcel(filePath) {
+	console.log("Reading Excel file...");
     try {
         const workbook = XLSX.readFile(filePath);
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const pins = XLSX.utils.sheet_to_json(worksheet, { raw: false });
-        return pins.map(row => row['Tracking #']);
+        return pins.map(row => ({
+			trackingNum: row['Tracking #'],
+			originalPostalCode: row['Origin Postal Code'],
+			destinationPostalCode: row['Destination Postal Code']
+		}));
     } catch (error) {
         console.error('Error reading Excel file:', error);
         return [];
@@ -49,8 +54,16 @@ function formatDateString(dateString) {
 
 // Write data to Excel file
 function writeDataToExcel(data, filename) {
-	
-    const ws = XLSX.utils.aoa_to_sheet([['PIN', 'Shipping Date', 'Delivery Date', 'Business Days'], ...data]);
+	const header = [
+		'PIN', 
+		'Shipping Date', 
+		'Delivery Date',
+		'Business Days',
+		'Origin Postal Code',
+		'Destination Postal Code',
+		'Delivery Standard'
+	  ];
+	  const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Tracking Data');
     writeFile(`./data/results${filename}`, XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' }), (err) => {
@@ -61,15 +74,18 @@ function writeDataToExcel(data, filename) {
 
 (async() => {
 
+	console.log("Starting script...");
 	const platform = os.platform();
 	const startDate = new Date(); // Start time for the script
 	const filename = process.argv.length >= 3 ? process.argv[2] : 'PuroMar5.xlsx'; // Change this to the name of your Excel file
 	const pinFilePath = `./data/${filename}`; // Change this to the path of your Excel file
-    const pinNumbers = await getPinNumbersFromExcel(pinFilePath);
+    const result = await getPinDataFromExcel(pinFilePath);
 	
+	console.log("Finished reading Excel file.");
+
     const data = [];
 	let amountPins = 0
-	const amountPinsTotal = pinNumbers.length;
+	const amountPinsTotal = result.length;
 	let totalIterationTime = 0;
 	let timeout;
 	let browser;
@@ -90,7 +106,10 @@ function writeDataToExcel(data, filename) {
 		timeout = 5000;
 	}
 	
-	for (const pin of pinNumbers) {
+	for (const pinObj of result) {
+		const pin = pinObj.trackingNum;
+		const originPostalCode = pinObj.originalPostalCode;
+		const destinationPostalCode = pinObj.destinationPostalCode;
 		let dateString;
 		const website = `https://www.purolator.com/en/shipping/tracker?pin=${pin}`
 		const iterationStartTime = new Date(); // Start time for the iteration
@@ -153,9 +172,11 @@ function writeDataToExcel(data, filename) {
 
 		// Calculate business days
 		const businessDays = getBusinessDays(shippingDate, deliveryDate);
+		
 		console.log("Business days between shipping and delivery:", businessDays);
 
-		data.push([pin, shippingDate, deliveryDate, businessDays]);
+		data.push([pin, shippingDate, deliveryDate, businessDays, originPostalCode,
+			destinationPostalCode]);
 		if (amountPins % 100 === 0) {
 			writeDataToExcel(data, filename);
 		}
@@ -165,7 +186,7 @@ function writeDataToExcel(data, filename) {
         console.log(`Iteration took ${iterationDuration.toFixed(2)} seconds.`);
 		totalIterationTime += iterationDuration;
 		const averageIterationTime = totalIterationTime / amountPins;
-    	const estimatedTotalTime = (pinNumbers.length - amountPins) * averageIterationTime; // Estimate remaining time
+    	const estimatedTotalTime = (amountPinsTotal.length - amountPins) * averageIterationTime; // Estimate remaining time
     	console.log(`Estimated total runtime: ${estimatedTotalTime.toFixed(2)} seconds.`);
 		console.log('-------------------------------------------');
 	}
