@@ -86,6 +86,7 @@ function getBusinessDays(startDate, endDate) {
 		const deliveryTime = pinObj.deliveryTime;
 		let deliveryStandard = pinObj.deliveryStandard;
 		amountPins++;
+		console.log(`Processing, ${amountPins} of ${amountPinsTotal}`);
         console.log(originPostalCode, destinationPostalCode);
 
 		if (originPostalCode === undefined || destinationPostalCode === undefined) {
@@ -95,7 +96,7 @@ function getBusinessDays(startDate, endDate) {
 
         let dateString;
         const website = 'https://eshiponline.purolator.com/ShipOnline/estimates/estimate.aspx?lang=E'
-		console.log(`Processing, ${amountPins} of ${amountPinsTotal}`);
+		
 		if (deliveryTime === '1') {
 			console.log('Skipping PIN due to delivery time.');
 			continue;
@@ -161,7 +162,6 @@ function getBusinessDays(startDate, endDate) {
 					return extractedText;
 				}, row)
 				
-				console.log(`Second cell Text: ${secondCellText}`);
 				if (secondCellText === 'Purolator Express') {
 					dateString = await page.evaluate(row => row.querySelector('td:first-child > span').textContent.trim(), row);
 					break;
